@@ -58,10 +58,12 @@ echo "Restoring config.php"
 cp -R httpdocs-backup-$BACKUP_NUMBER/config/config.php httpdocs/config/
 
 echo "Fixing directory permissions...."
-find httpdocs/ -type d -exec chmod 750 {} \;
+#find httpdocs/ -type d -exec chmod 750 {} \;
 chmod 0755 httpdocs
+chmod 0750 httpdocs/config
 echo "Fixing file permissions...."
-find httpdocs/ -type f -exec chmod 644 {} \;
+#find httpdocs/ -type f -exec chmod 644 {} \;
+chmod 0640 httpdocs/config/config.php
 echo "Fixing CLI permissions...."
 chmod +x httpdocs/occ
 
