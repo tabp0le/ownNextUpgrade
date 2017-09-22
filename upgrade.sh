@@ -45,17 +45,49 @@ export BACKUP_NUMBER=$(date +%Y%m%d_%H%M%S)
 
 mv httpdocs httpdocs-backup-$BACKUP_NUMBER  
 
-echo "De-compressing archive"
+echo "De-compressing archive..."
 
 unzip -q $NEW_VERSION
 
-echo "Renaming unzipped folder"
+echo "Renaming unzipped folder..."
 
 mv $TYPE httpdocs
 
-echo "Restoring config.php"
+echo "Restoring config.php..."
 
 cp -R httpdocs-backup-$BACKUP_NUMBER/config/config.php httpdocs/config/
+
+echo " "
+
+PS3="Would you like to restore apps? (Not recommended for migrations) [Select a number]: "
+options=("Yes" "No")
+select opt in "${options[@]}"
+do
+   case $opt in
+       Yes)
+            export APPS_RESTORE=1
+            break
+            ;;
+       No)
+            export APPS_RESTORE=
+            break
+            ;;
+   esac
+done
+
+if [ $APPS_RESTORE -eq 1 ]
+then
+echo "Restoring apps from backup"
+   for i in httpdocs-backup-$BACKUP_NUMBER/apps/*; do
+      name=$(basename "$i")
+      if [[ ! -e "httpdocs/apps/$name" ]]; then
+         cp -aR httpdocs-backup-$BACKUP_NUMBER/apps/$name httpdocs/apps/ 
+         echo "Apps restored"
+      fi
+   done
+else
+   echo "Apps not restored"
+fi
 
 echo "Fixing directory permissions...."
 #find httpdocs/ -type d -exec chmod 750 {} \;
@@ -72,6 +104,3 @@ echo "All permissions fixed!"
 php httpdocs/occ upgrade
 
 echo "Upgrade complete"
-
-
-
