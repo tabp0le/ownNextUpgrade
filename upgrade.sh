@@ -23,6 +23,9 @@ echo "First we need some info..."
 echo -n "Enter the filename of the downloaded new version and press [ENTER]: "
 read NEW_VERSION
 
+echo -n "Enter the target webroot folder name  (ie. httpdocs) and press [ENTER]: "
+read TARGET_WEBROOT
+
 PS3="Which software are you upgrading to? [Select a number]: "
 options=("ownCloud" "nextCloud")
 select opt in "${options[@]}"
@@ -38,26 +41,6 @@ do
             ;;
    esac
 done
-
-echo "Backing up current core..."
-
-export BACKUP_NUMBER=$(date +%Y%m%d_%H%M%S)
-
-mv httpdocs httpdocs-backup-$BACKUP_NUMBER  
-
-echo "De-compressing archive..."
-
-unzip -q $NEW_VERSION
-
-echo "Renaming unzipped folder..."
-
-mv $TYPE httpdocs
-
-echo "Restoring config.php..."
-
-cp -R httpdocs-backup-$BACKUP_NUMBER/config/config.php httpdocs/config/
-
-echo " "
 
 PS3="Would you like to restore apps? (Not recommended for migrations) [Select a number]: "
 options=("Yes" "No")
@@ -75,13 +58,31 @@ do
    esac
 done
 
+echo "Backing up current core..."
+
+export BACKUP_NUMBER=$(date +%Y%m%d_%H%M%S)
+
+mv $TARGET_WEBROOT $TARGET_WEBROOT-backup-$BACKUP_NUMBER
+
+echo "De-compressing archive..."
+
+unzip -q $NEW_VERSION
+
+echo "Renaming unzipped folder..."
+
+mv $TYPE $TARGET_WEBROOT
+
+echo "Restoring config.php..."
+
+cp -R $TARGET_WEBROOT-backup-$BACKUP_NUMBER/config/config.php $TARGET_WEBROOT/config/
+
 if [ $APPS_RESTORE -eq 1 ]
 then
 echo "Restoring apps from backup"
-   for i in httpdocs-backup-$BACKUP_NUMBER/apps/*; do
+   for i in $TARGET_WEBROOT-backup-$BACKUP_NUMBER/apps/*; do
       name=$(basename "$i")
-      if [[ ! -e "httpdocs/apps/$name" ]]; then
-         cp -aR httpdocs-backup-$BACKUP_NUMBER/apps/$name httpdocs/apps/ 
+      if [[ ! -e "$TARGET_WEBROOT/apps/$name" ]]; then
+         cp -aR $TARGET_WEBROOT-backup-$BACKUP_NUMBER/apps/$name $TARGET_WEBROOT/apps/
          echo "Apps restored"
       fi
    done
@@ -90,17 +91,17 @@ else
 fi
 
 echo "Fixing directory permissions...."
-#find httpdocs/ -type d -exec chmod 750 {} \;
-chmod 0755 httpdocs
-chmod 0750 httpdocs/config
+#find $TARGET_WEBROOT/ -type d -exec chmod 750 {} \;
+chmod 0755 $TARGET_WEBROOT
+chmod 0750 $TARGET_WEBROOT/config
 echo "Fixing file permissions...."
-#find httpdocs/ -type f -exec chmod 644 {} \;
-chmod 0640 httpdocs/config/config.php
+#find $TARGET_WEBROOT/ -type f -exec chmod 644 {} \;
+chmod 0640 $TARGET_WEBROOT/config/config.php
 echo "Fixing CLI permissions...."
-chmod +x httpdocs/occ
+chmod +x $TARGET_WEBROOT/occ
 
 echo "All permissions fixed!"
 
-php httpdocs/occ upgrade
+php $TARGET_WEBROOT/occ upgrade
 
 echo "Upgrade complete"
