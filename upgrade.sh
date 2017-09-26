@@ -47,16 +47,18 @@ options=("Yes" "No")
 select opt in "${options[@]}"
 do
    case $opt in
-       Yes)
+        Yes)
             export APPS_RESTORE=1
             break
             ;;
-       No)
-            export APPS_RESTORE=
+        No)
+            export APPS_RESTORE=0
             break
             ;;
    esac
 done
+
+export DATADIR=$(echo $(ls $TARGET_WEBROOT |grep data))
 
 echo "Backing up current core..."
 
@@ -76,7 +78,37 @@ echo "Restoring config.php..."
 
 cp -R $TARGET_WEBROOT-backup-$BACKUP_NUMBER/config/config.php $TARGET_WEBROOT/config/
 
-if [ $APPS_RESTORE -eq 1 ]
+if [ "$DATADIR" -ne "" ]; then
+   PS3="How do you want to restore your data? [Select a number]: "
+   options=("Copy" "Move")
+   select opt in "${options[@]}"
+   do
+      case $opt in
+           Copy)
+               export DATA_COPY=1
+               break
+               ;;
+           Move)
+               export DATA_COPY=0
+               break
+               ;;
+     esac
+  done
+fi
+
+if [$DATA_COPY -eq 1];
+then
+  echo "Restoring data via copy..."
+  cp -aR $TARGET_WEBROOT-backup-$BACKUP_NUMBER/$DATADIR $TARGET_WEBROOT/
+fi
+
+if [$DATA_COPY -eq 0];
+then
+  echo "Restoring data via move..."
+  mv $TARGET_WEBROOT-backup-$BACKUP_NUMBER/$DATADIR $TARGET_WEBROOT/
+fi
+
+if [ $APPS_RESTORE -eq 1 ];
 then
 echo "Restoring apps from backup"
    for i in $TARGET_WEBROOT-backup-$BACKUP_NUMBER/apps/*; do
